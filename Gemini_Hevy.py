@@ -15,6 +15,14 @@ from dotenv import load_dotenv
 from google.auth import credentials
 import subprocess
 
+# Import knowledge retriever for PDF-based knowledge integration
+try:
+    from knowledge_retriever import KnowledgeRetriever
+    KNOWLEDGE_AVAILABLE = True
+except ImportError:
+    KNOWLEDGE_AVAILABLE = False
+    print("[!] Knowledge retriever not available - PDF knowledge integration disabled")
+
 # --- CONFIGURATION ---
 DRY_RUN = False  # Set to False to actually post workouts to Hevy
 MODEL_NAME = "gemini-flash-latest" # Using latest Gemini Flash model
@@ -296,6 +304,19 @@ def generate_monthly_plan():
 
 def generate_plan_with_ollama(hevy_stats, exercise_db, chat_memory):
     """Generate a training plan using Ollama or return a sample plan."""
+    # Retrieve knowledge from PDF documents if available
+    knowledge_context = ""
+    if KNOWLEDGE_AVAILABLE:
+        try:
+            retriever = KnowledgeRetriever()
+            docs = retriever.list_available_knowledge()
+            if docs:
+                print(f"   Using knowledge from {len(docs)} PDF document(s)")
+                knowledge_context = retriever.get_training_context()
+            retriever.close()
+        except Exception as e:
+            print(f"   [!] Could not retrieve PDF knowledge: {e}")
+    
     # Create a sample plan as fallback
     sample_plan = {
         "routines": [
@@ -330,7 +351,7 @@ def generate_plan_with_ollama(hevy_stats, exercise_db, chat_memory):
     
     try:
         print("   Attempting to use Ollama for plan generation...")
-        ollama_response = call_ollama_service(hevy_stats or "", chat_memory or "")
+        ollama_response = call_ollama_service(hevy_stats or "", chat_memory or "", knowledge_context)
         if ollama_response:
             print("   Successfully generated plan with Ollama")
             try:
@@ -345,7 +366,7 @@ def generate_plan_with_ollama(hevy_stats, exercise_db, chat_memory):
     print("   Using sample plan as fallback")
     return sample_plan
 
-def call_ollama_service(hevy_stats, chat_memory):
+def call_ollama_service(hevy_stats, chat_memory, knowledge_context=""):
     """Call Ollama service to generate a training plan."""
     try:
         # Try basic Ollama call with proper encoding and timeout
