@@ -10,6 +10,8 @@ import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
+import gspread
+from google.oauth2.service_account import Credentials
 
 # --- CONFIGURATION ---
 load_dotenv()

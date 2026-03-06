@@ -12,6 +12,7 @@ from google.auth.transport.requests import Request
 from googleapiclient.http import MediaIoBaseDownload
 from google import genai
 from dotenv import load_dotenv
+from google.auth import credentials
 
 # --- CONFIGURATION ---
 DRY_RUN = False  # Set to False to actually post workouts to Hevy

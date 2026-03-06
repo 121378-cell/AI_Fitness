@@ -5,6 +5,8 @@ import csv
 import os
 import time
 import random
+import gspread
+from google.oauth2.service_account import Credentials
 
 import os
 import sys
@@ -34,8 +36,6 @@ if check_mount and not is_windows:
         print("Safety Check: PASSED. Drive is mounted.")
 elif check_mount and is_windows:
     print("Note: Mount check skipped on Windows (not applicable).")
-
-# ... rest of your code ...
 
 # --- CONFIGURATION VIA ENVIRONMENT ---
 SAVE_PATH = os.getenv("SAVE_PATH")
@@ -70,6 +70,22 @@ for arg in sys.argv[1:]:
         START_DATE = arg
         print(f"Using command-line start date: {START_DATE}")
 # ---------------------
+
+# Google Sheets Authentication
+SERVICE_ACCOUNT_FILE = "service_account.json"
+SCOPES = [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive"
+]
+creds = Credentials.from_service_account_file(
+    SERVICE_ACCOUNT_FILE,
+    scopes=SCOPES
+)
+client = gspread.authorize(creds)
+
+# Replace CSV_FILE with Google Sheets
+SHEET_NAME = "Fuerza Diario"
+sheet = client.open(SHEET_NAME).sheet1
 
 def get_safe(data, *keys):
     try:
@@ -163,9 +179,9 @@ def main():
         except Exception as e:
             print(f"Warning: Could not read existing file: {e}")
     else:
-        with open(CSV_FILE, mode='w', newline='') as f:
-            writer = csv.writer(f)
-            writer.writerow(headers)
+        # Write headers to Google Sheets if empty
+        if not sheet.get_all_values():
+            sheet.append_row(headers)
 
     # 4. The Loop
     while current_date <= end:
@@ -380,10 +396,12 @@ def main():
                 print(" Done.")
             else:
                 # Normal mode: append immediately
-                with open(CSV_FILE, mode='a', newline='') as f:
-                    writer = csv.writer(f)
-                    writer.writerow(row)
-                print(" Done.")
+                # Append data to Google Sheets
+                row_data = [
+                    day_str, rhr, min_hr, max_hr, stress, steps, vo2, spo2, resp, cals_tot
+                ]
+                sheet.append_row(row_data)
+                print(f"Data for {day_str} saved to Google Sheets.")
 
         except Exception as e:
             print(f" Failed ({e})")
