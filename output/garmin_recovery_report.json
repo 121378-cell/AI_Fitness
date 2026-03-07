@@ -1,0 +1,29 @@
+{
+  "generated_at": "2026-03-07T01:38:08.619500",
+  "recovery_score": {
+    "score": 80,
+    "factors": {
+      "sleep": 10,
+      "rhr": 15,
+      "activity": 10,
+      "hrv": -5
+    },
+    "status": "EXCELLENT",
+    "metrics": {
+      "sleep_hours": 6.489999999999999,
+      "rhr": 48.25,
+      "daily_steps": 16991.25,
+      "hrv": NaN
+    }
+  },
+  "latest_day": {
+    "date": "2026-03-04",
+    "sleep": 6.27,
+    "rhr": "50",
+    "steps": "24798",
+    "hrv": NaN,
+    "training_status": NaN,
+    "calories": 2787.0
+  },
+  "data_points": 574
+}

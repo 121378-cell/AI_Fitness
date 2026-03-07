@@ -1,0 +1,128 @@
+{
+  "based_on_previous": {
+    "sessions_completed": 5,
+    "total_volume": 34800.0,
+    "exercises_tracked": [
+      {
+        "name": "Bench Press",
+        "sessions": 1,
+        "total_volume": 2000.0,
+        "rpe_avg": 7.0
+      },
+      {
+        "name": "Incline DB Press",
+        "sessions": 1,
+        "total_volume": 480.0,
+        "rpe_avg": 6.0
+      },
+      {
+        "name": "Barbell Rows",
+        "sessions": 2,
+        "total_volume": 3480.0,
+        "rpe_avg": 6.5
+      },
+      {
+        "name": "Tricep Rope",
+        "sessions": 1,
+        "total_volume": 840.0,
+        "rpe_avg": 8.0
+      },
+      {
+        "name": "Leg Press",
+        "sessions": 1,
+        "total_volume": 3200.0,
+        "rpe_avg": 6.0
+      },
+      {
+        "name": "Leg Curls",
+        "sessions": 1,
+        "total_volume": 2100.0,
+        "rpe_avg": 7.0
+      },
+      {
+        "name": "Calf Raises",
+        "sessions": 1,
+        "total_volume": 6480.0,
+        "rpe_avg": 5.0
+      },
+      {
+        "name": "Weighted Pull-ups",
+        "sessions": 1,
+        "total_volume": 200.0,
+        "rpe_avg": 7.0
+      },
+      {
+        "name": "Lat Pulldowns",
+        "sessions": 1,
+        "total_volume": 2160.0,
+        "rpe_avg": 6.0
+      },
+      {
+        "name": "DB Rows",
+        "sessions": 1,
+        "total_volume": 840.0,
+        "rpe_avg": 6.0
+      },
+      {
+        "name": "Pallof Press",
+        "sessions": 1,
+        "total_volume": 960.0,
+        "rpe_avg": 5.0
+      },
+      {
+        "name": "Machine Chest Fly",
+        "sessions": 1,
+        "total_volume": 2700.0,
+        "rpe_avg": 6.0
+      },
+      {
+        "name": "Machine Row",
+        "sessions": 1,
+        "total_volume": 3600.0,
+        "rpe_avg": 6.0
+      },
+      {
+        "name": "Shoulder Press Machine",
+        "sessions": 1,
+        "total_volume": 2160.0,
+        "rpe_avg": 6.0
+      },
+      {
+        "name": "High-rep leg work",
+        "sessions": 1,
+        "total_volume": 3600.0,
+        "rpe_avg": 5.0
+      }
+    ],
+    "rpe_average": 5.7894736842105265,
+    "performance_metrics": {},
+    "notes": [
+      "Lunes - Bench Press: Buena forma - explosivo",
+      "Lunes - Incline DB Press: Control perfecto",
+      "Lunes - Barbell Rows: Fuerte",
+      "Lunes - Tricep Rope: Quemazo controlado",
+      "Martes - Leg Press: Profundidad completa",
+      "Martes - Leg Curls: Mucho volumen",
+      "Martes - Calf Raises: Fácil",
+      "Miércoles - Weighted Pull-ups: Fuerte",
+      "Miércoles - Barbell Rows: Mejor que lunes",
+      "Miércoles - Lat Pulldowns: Buena conexión",
+      "Miércoles - DB Rows: Controlado",
+      "Jueves - Pallof Press: McGill Protocol",
+      "Viernes - Machine Chest Fly: Buena contracción",
+      "Viernes - Machine Row: Sólido",
+      "Viernes - Shoulder Press Machine: Control",
+      "Viernes - High-rep leg work: Pump increíble"
+    ]
+  },
+  "recovery_data": {
+    "daily_steps": 0,
+    "heart_rate_resting": 0,
+    "sleep_hours": 0,
+    "recovery_status": "POOR"
+  },
+  "adjustments": [
+    "⛔ Recovery poor - reduce volume, prioritize sleep"
+  ],
+  "next_focus": "DELOAD & REST"
+}
