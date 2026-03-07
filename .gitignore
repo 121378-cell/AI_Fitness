@@ -45,6 +45,10 @@ garmin_runs.csv
 # Logs
 *.log
 cron_log.txt
+sync_log.txt
+
+# Generated Windows Task Scheduler wrapper scripts
+_run_*.bat
 
 # Database files
 *.db
