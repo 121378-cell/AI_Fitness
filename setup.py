@@ -338,26 +338,93 @@ def configure_gemini(env_vars):
 
     return env_vars, True
 
+def setup_windows_tasks(script_dir, python_exe):
+    """Create Windows Task Scheduler tasks for daily syncing."""
+    import subprocess
+
+    tasks = []
+
+    if ask_yes_no("Schedule Garmin health data sync? (daily at 4:00 AM)"):
+        tasks.append(("AI_Fitness_Garmin_Health", "daily_garmin_health.py", "04:00"))
+
+    if ask_yes_no("Schedule Hevy workout sync? (daily at 4:05 AM)"):
+        tasks.append(("AI_Fitness_Hevy_Workouts", "daily_hevy_workouts.py", "04:05"))
+
+    if ask_yes_no("Schedule Garmin runs sync? (daily at 4:10 AM)"):
+        tasks.append(("AI_Fitness_Garmin_Runs", "daily_garmin_runs.py", "04:10"))
+
+    if ask_yes_no("Schedule Garmin activities sync? (daily at 4:15 AM)"):
+        tasks.append(("AI_Fitness_Garmin_Activities", "daily_garmin_activities.py", "04:15"))
+
+    if not tasks:
+        print_info("No tasks selected.")
+        return
+
+    print()
+    created = 0
+    for task_name, script_name, start_time in tasks:
+        script_path = script_dir / script_name
+        wrapper_bat = script_dir / f"_run_{script_name.replace('.py', '')}.bat"
+        with open(wrapper_bat, 'w') as bat:
+            bat.write(f'@echo off\r\n')
+            bat.write(f'cd /d "{script_dir}"\r\n')
+            bat.write(f'"{python_exe}" "{script_path}" >> "{script_dir}\\sync_log.txt" 2>&1\r\n')
+
+        cmd = [
+            "schtasks", "/Create", "/F",
+            "/TN", task_name,
+            "/TR", f'"{wrapper_bat}"',
+            "/SC", "DAILY",
+            "/ST", start_time,
+            "/RL", "HIGHEST",
+        ]
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            if result.returncode == 0:
+                print_success(f"Task created: {task_name} → runs daily at {start_time}")
+                created += 1
+            else:
+                print_error(f"Failed to create task {task_name}: {result.stderr.strip()}")
+                print_info(f"  You can create it manually via Task Scheduler:")
+                print_info(f"  Program: {python_exe}")
+                print_info(f"  Arguments: \"{script_path}\"")
+                print_info(f"  Start in: {script_dir}")
+                print_info(f"  Trigger: Daily at {start_time}")
+        except Exception as e:
+            print_error(f"Could not run schtasks: {e}")
+            print_warning("Make sure you are running this script as Administrator.")
+
+    if created:
+        print()
+        print_success(f"{created} task(s) scheduled successfully!")
+        print_info("To verify, open Task Scheduler and look for 'AI_Fitness_*' tasks.")
+        print_info("To run a task immediately: right-click → Run")
+        print_info("To view logs: check the task's 'History' tab in Task Scheduler.")
+
+
 def setup_cron_tasks():
     """Help user set up scheduled tasks."""
     print_section("Scheduled Tasks Setup")
 
+    is_windows = platform.system() == "Windows"
     is_pi = platform.machine().startswith('arm') or platform.machine() == 'aarch64'
 
-    if not is_pi:
-        print_warning("Cron scheduling is typically used on Raspberry Pi/Linux.")
-        print_info("On Windows, use Task Scheduler instead.")
-        if not ask_yes_no("Continue with cron setup anyway?", default=False):
-            return
-
-    print_info("This will help you set up automatic data syncing.")
-    print_info("Tasks can run hourly, daily, etc.")
-    print()
-
-    if not ask_yes_no("Set up scheduled tasks?"):
+    if not ask_yes_no("Set up automatic scheduled tasks?"):
         return
 
     script_dir = get_script_dir()
+    python_exe = sys.executable
+
+    if is_windows:
+        print_info("Windows detected. Setting up Task Scheduler tasks...")
+        print_info("Note: Run this script as Administrator for best results.")
+        print()
+        setup_windows_tasks(script_dir, python_exe)
+        return
+
+    print_info("This will help you set up automatic data syncing via cron.")
+    print_info("Tasks can run hourly, daily, etc.")
+    print()
 
     cron_jobs = []
 
