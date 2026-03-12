@@ -1,0 +1,64 @@
+name: SQLite Migration Checks
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "src/**"
+      - "daily_*.py"
+      - "history_*.py"
+      - "update_yesterday_garmin.py"
+      - "migrate_csv_to_sqlite.py"
+      - "sqlite_validation_examples.py"
+      - "run_data_quality_gate.py"
+      - "run_migration_quality_pipeline.py"
+      - ".github/workflows/sqlite-migration-checks.yml"
+  pull_request:
+    paths:
+      - "src/**"
+      - "daily_*.py"
+      - "history_*.py"
+      - "update_yesterday_garmin.py"
+      - "migrate_csv_to_sqlite.py"
+      - "sqlite_validation_examples.py"
+      - "run_data_quality_gate.py"
+      - "run_migration_quality_pipeline.py"
+      - ".github/workflows/sqlite-migration-checks.yml"
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Compile checks
+        run: |
+          python -m py_compile \
+            src/database.py \
+            src/runtime_checks.py \
+            src/http_utils.py \
+            src/logging_utils.py \
+            src/config/datasets.py \
+            src/services/sync_service.py \
+            src/services/validation_service.py \
+            src/services/quality_gate_service.py \
+            src/services/pipeline_service.py \
+            migrate_csv_to_sqlite.py \
+            sqlite_validation_examples.py \
+            run_data_quality_gate.py \
+            run_migration_quality_pipeline.py
+
+      - name: Run unified pre-cutover pipeline
+        run: |
+          AI_FITNESS_LOG_LEVEL=INFO python run_migration_quality_pipeline.py

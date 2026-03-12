@@ -157,3 +157,11 @@ Buenas prácticas adicionales:
 - `sqlite_validation_examples.py`, `run_data_quality_gate.py` y `run_migration_quality_pipeline.py` ahora consumen `get_validation_tables(...)`.
 - Esto elimina duplicación de configuración y reduce riesgo de drift entre entrypoints operativos.
 
+
+
+## 16) Cierre de tareas pendientes del plan (automatización completa)
+
+- Se agregó workflow de CI en `.github/workflows/sqlite-migration-checks.yml` para ejecutar compilación y pipeline pre-cutover automáticamente en push/PR.
+- Se añadió `Makefile` con comandos operativos estándar (`migrate`, `validate`, `quality`, `pipeline`, `ci-check`) para facilitar ejecución local y runbooks.
+- Con esto queda cubierta la automatización base del plan: migración, validación, quality gate y pipeline unificado en local/CI.
+
