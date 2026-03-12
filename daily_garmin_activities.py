@@ -17,6 +17,7 @@ import sys
 import platform
 import json
 from dotenv import load_dotenv
+from src.database import sync_csv_to_table
 
 # 1. Load configuration
 load_dotenv()
@@ -280,7 +281,9 @@ def main():
                 writer = csv.writer(f)
                 writer.writerow(HEADERS)
                 writer.writerows(all_rows)
+            sqlite_rows = sync_csv_to_table("garmin_activities.csv")
             print(f"SUCCESS: Added {len(new_rows)} new activities. [Sorted newest to oldest]")
+            print(f"SQLite sync complete: {sqlite_rows} rows in garmin_activities")
         else:
             print("No new activities found.")
 

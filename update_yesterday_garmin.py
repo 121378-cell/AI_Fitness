@@ -21,6 +21,7 @@ import os
 import sys
 import platform
 from dotenv import load_dotenv
+from src.database import sync_csv_to_table
 
 # 1. Load configuration immediately
 load_dotenv()
@@ -364,7 +365,9 @@ def main():
         row = data_to_row(data)
 
         if save_to_csv(row, yesterday):
+            sqlite_rows = sync_csv_to_table("garmin_stats.csv")
             print(f"SUCCESS! Updated data for {yesterday} in {CSV_FILE}")
+            print(f"SQLite sync complete: {sqlite_rows} rows in garmin_stats")
         else:
             print("FAILED to save data.")
 

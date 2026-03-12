@@ -8,6 +8,7 @@ import os
 import sys
 import platform
 from dotenv import load_dotenv
+from src.database import sync_csv_to_table
 
 # 1. Load configuration immediately
 load_dotenv()
@@ -173,7 +174,9 @@ def main():
                 writer = csv.writer(f)
                 writer.writerow(["Date", "Workout", "Exercise", "Set", "Weight (lbs)", "Reps", "RPE", "Type"])
                 writer.writerows(all_rows)
+            sqlite_rows = sync_csv_to_table("hevy_stats.csv")
             print(f"SUCCESS: Added {len(new_rows)} new sets. (Skipped {skipped_count} duplicates) [Sorted newest to oldest]")
+            print(f"SQLite sync complete: {sqlite_rows} rows in hevy_stats")
         else:
             print(f"No *new* sets found. (Skipped {skipped_count} duplicates)")
 

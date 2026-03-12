@@ -10,6 +10,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
+from src.database import table_to_dataframe
 
 # --- CONFIGURATION ---
 load_dotenv()
@@ -165,16 +166,17 @@ def is_cardio_exercise(exercise_name):
 # --- DATA LOADING FUNCTIONS ---
 @st.cache_data(ttl=300)
 def load_hevy_data():
-    """Load and prepare hevy workout data"""
-    if not os.path.exists(HEVY_STATS_FILE):
-        return None
+    """Load and prepare hevy workout data from SQLite (fallback to CSV)."""
     try:
-        df = pd.read_csv(HEVY_STATS_FILE)
-        # Handle mixed date formats (ISO and US format)
+        df = table_to_dataframe('hevy_stats')
+        if df.empty and os.path.exists(HEVY_STATS_FILE):
+            df = pd.read_csv(HEVY_STATS_FILE)
+        if df.empty:
+            return None
         df['Date'] = pd.to_datetime(df['Date'], format='mixed', dayfirst=False)
         df['primary_muscle_group'] = df['Exercise'].apply(get_muscle_group)
         df['is_cardio'] = df['Exercise'].apply(is_cardio_exercise)
-        df['Volume'] = df['Weight (lbs)'].fillna(0) * df['Reps'].fillna(0)
+        df['Volume'] = pd.to_numeric(df['Weight (lbs)'], errors='coerce').fillna(0) * pd.to_numeric(df['Reps'], errors='coerce').fillna(0)
         return df
     except Exception as e:
         st.error(f"Error loading Hevy data: {e}")
@@ -183,14 +185,14 @@ def load_hevy_data():
 
 @st.cache_data(ttl=300)
 def load_garmin_data():
-    """Load and prepare garmin health data"""
-    if not os.path.exists(GARMIN_STATS_FILE):
-        return None
+    """Load and prepare garmin health data from SQLite (fallback to CSV)."""
     try:
-        df = pd.read_csv(GARMIN_STATS_FILE)
-        # Handle mixed date formats (ISO and US format)
+        df = table_to_dataframe('garmin_stats')
+        if df.empty and os.path.exists(GARMIN_STATS_FILE):
+            df = pd.read_csv(GARMIN_STATS_FILE)
+        if df.empty:
+            return None
         df['Date'] = pd.to_datetime(df['Date'], format='mixed', dayfirst=False)
-        # Remove duplicate dates, keeping the last entry
         df = df.drop_duplicates(subset=['Date'], keep='last')
         df = df.sort_values('Date').reset_index(drop=True)
         return df
@@ -201,12 +203,13 @@ def load_garmin_data():
 
 @st.cache_data(ttl=300)
 def load_garmin_activities():
-    """Load garmin activities data (running, cycling, swimming, etc.)"""
-    if not os.path.exists(GARMIN_ACTIVITIES_FILE):
-        return None
+    """Load garmin activities data from SQLite (fallback to CSV)."""
     try:
-        df = pd.read_csv(GARMIN_ACTIVITIES_FILE)
-        # Handle mixed date formats (ISO and US format)
+        df = table_to_dataframe('garmin_activities')
+        if df.empty and os.path.exists(GARMIN_ACTIVITIES_FILE):
+            df = pd.read_csv(GARMIN_ACTIVITIES_FILE)
+        if df.empty:
+            return None
         df['Date'] = pd.to_datetime(df['Date'], format='mixed', dayfirst=False)
         return df
     except Exception as e:

@@ -4,6 +4,7 @@ from datetime import date
 import csv
 import os
 from dotenv import load_dotenv
+from src.database import sync_csv_to_table
 
 import os
 import sys
@@ -320,8 +321,11 @@ def main():
             writer = csv.writer(f)
             writer.writerow(headers)
             writer.writerows(rows)
+
+        sqlite_rows = sync_csv_to_table("garmin_stats.csv")
             
         print(f"SUCCESS! Saved data for {today} to {CSV_FILE}")
+        print(f"SQLite sync complete: {sqlite_rows} rows in garmin_stats")
 
     except Exception as e:
         print(f"Global Error: {e}")
