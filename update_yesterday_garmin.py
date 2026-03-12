@@ -18,7 +18,7 @@ from garminconnect import Garmin
 from datetime import date, timedelta
 import csv
 import os
-from src.database import sync_csv_to_table
+from src.services.sync_service import sync_single_dataset
 from src.runtime_checks import enforce_mount_safety, load_runtime_config
 
 config = load_runtime_config(default_save=os.getcwd())
@@ -344,7 +344,7 @@ def main():
         row = data_to_row(data)
 
         if save_to_csv(row, yesterday):
-            sqlite_rows = sync_csv_to_table("garmin_stats.csv")
+            sqlite_rows = sync_single_dataset("garmin_stats.csv").rows_processed
             print(f"SUCCESS! Updated data for {yesterday} in {CSV_FILE}")
             print(f"SQLite sync complete: {sqlite_rows} rows in garmin_stats")
         else:

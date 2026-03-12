@@ -108,3 +108,11 @@ Buenas prácticas adicionales:
 - `migrate_csv_to_sqlite.py` ahora consume `sync_all_datasets()` y reporta resultados tipados por dataset.
 - ETLs pueden migrar progresivamente desde llamadas directas a DB (`sync_csv_to_table`) hacia servicios (`sync_single_dataset`) sin romper comportamiento actual.
 
+
+
+## 10) Siguiente tarea del plan: ETLs consumen la capa de servicios
+
+- Se migraron los scripts ETL e históricos restantes para usar `sync_single_dataset(...)` desde `src/services/sync_service.py`.
+- Esto reduce el acoplamiento directo de los scripts contra funciones internas de `src/database.py`.
+- El comportamiento funcional se mantiene: cada script sigue escribiendo CSV y luego sincroniza SQLite (dual-write de transición).
+

@@ -8,7 +8,7 @@ import platform
 import json
 import time
 from dotenv import load_dotenv
-from src.database import sync_csv_to_table
+from src.services.sync_service import sync_single_dataset
 
 # 1. Load configuration
 load_dotenv()
@@ -182,7 +182,7 @@ def main():
                 "hrTimeInZone_1", "hrTimeInZone_2", "hrTimeInZone_3", "hrTimeInZone_4"
             ])
             writer.writerows(all_rows)
-        sqlite_rows = sync_csv_to_table("garmin_runs.csv")
+        sqlite_rows = sync_single_dataset("garmin_runs.csv").rows_processed
         print(f"   Written {len(all_rows)} total records (sorted newest to oldest).")
         print(f"SQLite sync complete: {sqlite_rows} rows in garmin_runs")
 

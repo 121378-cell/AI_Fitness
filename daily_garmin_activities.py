@@ -14,7 +14,7 @@ from datetime import date, timedelta
 import csv
 import os
 import json
-from src.database import sync_csv_to_table
+from src.services.sync_service import sync_single_dataset
 from src.runtime_checks import enforce_mount_safety, load_runtime_config
 
 config = load_runtime_config(default_save=os.getcwd())
@@ -263,7 +263,7 @@ def main():
                 writer = csv.writer(f)
                 writer.writerow(HEADERS)
                 writer.writerows(all_rows)
-            sqlite_rows = sync_csv_to_table("garmin_activities.csv")
+            sqlite_rows = sync_single_dataset("garmin_activities.csv").rows_processed
             print(f"SUCCESS: Added {len(new_rows)} new activities. [Sorted newest to oldest]")
             print(f"SQLite sync complete: {sqlite_rows} rows in garmin_activities")
         else:
