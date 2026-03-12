@@ -149,3 +149,11 @@ Buenas prácticas adicionales:
 - Se añadió `run_migration_quality_pipeline.py` como entrypoint único para pre-cutover (útil en CI/cron técnico).
 - El pipeline devuelve exit code `0/1` y resume filas procesadas + estado de validaciones para facilitar automatización y observabilidad.
 
+
+
+## 15) Siguiente tarea del plan: configuración única de datasets
+
+- Se agregó `src/config/datasets.py` para centralizar la definición de tablas usadas por validación y quality gates.
+- `sqlite_validation_examples.py`, `run_data_quality_gate.py` y `run_migration_quality_pipeline.py` ahora consumen `get_validation_tables(...)`.
+- Esto elimina duplicación de configuración y reduce riesgo de drift entre entrypoints operativos.
+

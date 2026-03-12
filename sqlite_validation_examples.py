@@ -3,39 +3,17 @@
 
 import os
 import sqlite3
-from typing import Dict
-
 import pandas as pd
 from dotenv import load_dotenv
 
+from src.config.datasets import get_validation_tables
 from src.services.validation_service import validate_table_pair
 
 load_dotenv()
 SAVE_PATH = os.getenv("SAVE_PATH", os.getcwd())
 DB_PATH = os.path.join(SAVE_PATH, "ai_fitness.db")
 
-TABLES: Dict[str, Dict[str, object]] = {
-    "garmin_stats": {
-        "csv": os.path.join(SAVE_PATH, "garmin_stats.csv"),
-        "date_col": "Date",
-        "check_cols": ["Weight (lbs)", "RHR", "Steps"],
-    },
-    "hevy_stats": {
-        "csv": os.path.join(SAVE_PATH, "hevy_stats.csv"),
-        "date_col": "Date",
-        "check_cols": ["Workout", "Exercise", "Weight (lbs)", "Reps"],
-    },
-    "garmin_activities": {
-        "csv": os.path.join(SAVE_PATH, "garmin_activities.csv"),
-        "date_col": "Date",
-        "check_cols": ["activityName", "sportType", "distance"],
-    },
-    "garmin_runs": {
-        "csv": os.path.join(SAVE_PATH, "garmin_runs.csv"),
-        "date_col": "Date",
-        "check_cols": ["activityName", "averageSpeed", "averageHR"],
-    },
-}
+TABLES = get_validation_tables(SAVE_PATH)
 
 
 def validate_table(conn: sqlite3.Connection, table: str, cfg: dict) -> None:
