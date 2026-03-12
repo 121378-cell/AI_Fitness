@@ -173,3 +173,11 @@ Buenas prácticas adicionales:
 - El workflow CI sube `pipeline_summary.json` como artifact (`sqlite-pipeline-summary`) para auditoría y trazabilidad.
 - El `Makefile` añade `quality-json` y `pipeline-json` para generar estos artefactos localmente.
 
+
+
+## 18) Siguiente tarea del plan: tests de servicios base
+
+- Se añadió `tests/test_services.py` con pruebas unitarias sobre configuración compartida, quality gate y propiedades de `PipelineSummary`.
+- El workflow CI ahora ejecuta `python -m unittest -v tests.test_services` antes de compilación/pipeline.
+- El `Makefile` agrega `test-services` y `ci-check` ahora también corre este bloque de pruebas.
+
