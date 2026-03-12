@@ -368,8 +368,8 @@ def setup_cron_tasks():
     if ask_yes_no("Schedule Hevy workout sync? (recommended: hourly)"):
         cron_jobs.append(f"35 * * * * cd {script_dir} && /usr/bin/python3 daily_hevy_workouts.py >> /home/pi/cron_log.txt 2>&1")
 
-    if ask_yes_no("Schedule Garmin runs sync? (recommended: hourly)"):
-        cron_jobs.append(f"40 * * * * cd {script_dir} && /usr/bin/python3 daily_garmin_runs.py >> /home/pi/cron_log.txt 2>&1")
+    if ask_yes_no("Schedule Garmin activities sync? (recommended: hourly)"):
+        cron_jobs.append(f"40 * * * * cd {script_dir} && /usr/bin/python3 daily_garmin_activities.py >> /home/pi/cron_log.txt 2>&1")
 
     if ask_yes_no("Schedule monthly AI workout plan generation?"):
         cron_jobs.append(f"0 1 1 * * cd {script_dir} && {script_dir}/venv/bin/python Gemini_Hevy.py >> /home/pi/cron_log.txt 2>&1")

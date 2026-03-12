@@ -1,61 +1,19 @@
-import requests
 import csv
 import os
 from datetime import datetime, timedelta
-from dotenv import load_dotenv  # <--- New Import
 
-import os
-import sys
-import platform
-from dotenv import load_dotenv
 from src.database import sync_csv_to_table
+from src.http_utils import HttpRequestError, request_json
+from src.runtime_checks import enforce_mount_safety, load_runtime_config
 
-# 1. Load configuration immediately
-load_dotenv()
+config = load_runtime_config(default_save=os.getcwd())
+enforce_mount_safety(config)
 
-# 2. Get the settings (with defaults for safety)
-# On Raspberry Pi/Linux: Set CHECK_MOUNT_STATUS=True in .env to enable mount verification
-# On Windows: Mount check is automatically skipped (unless explicitly enabled)
-check_mount = os.getenv("CHECK_MOUNT_STATUS", "False").lower() == "true"
-drive_path = os.getenv("DRIVE_MOUNT_PATH", "/home/pi/google_drive")
-
-# 3. Platform-Aware Safety Check
-is_windows = platform.system() == "Windows"
-
-if check_mount and not is_windows:
-    print(f"Safety Check: Verifying mount at {drive_path}...")
-
-    if not os.path.ismount(drive_path):
-        print(f"CRITICAL ERROR: Drive is not mounted at {drive_path}.")
-        print("Stopping script to prevent writing to local storage.")
-        sys.exit(1)
-    else:
-        print("Safety Check: PASSED. Drive is mounted.")
-elif check_mount and is_windows:
-    print("Note: Mount check skipped on Windows (not applicable).")
-
-# ... rest of your code ...
-
-# --- CONFIGURATION VIA ENVIRONMENT ---
-# 1. Load the .env file
-load_dotenv()
-
-# 2. Get variables safely
 API_KEY = os.getenv("HEVY_API_KEY")
-SAVE_PATH = os.getenv("SAVE_PATH")
+CSV_FILE = os.path.join(config.save_path, "hevy_stats.csv")
 
-# 3. Construct the full file path
-# This joins the folder path from .env with the filename
-if SAVE_PATH:
-    CSV_FILE = os.path.join(SAVE_PATH, "hevy_stats.csv")
-else:
-    # Fallback if someone forgets to set the .env
-    print("WARNING: SAVE_PATH not found in .env. Using current directory.")
-    CSV_FILE = "hevy_stats.csv"
-# -------------------------------------
 
 def main():
-    # Safety Check: Did the user actually set the key?
     if not API_KEY:
         print("CRITICAL ERROR: 'HEVY_API_KEY' not found. Please create a .env file.")
         return
@@ -64,77 +22,69 @@ def main():
         "api-key": API_KEY,
         "Accept": "application/json"
     }
-    
-    # 1. READ EXISTING DATA (Smart Deduplication)
+
     existing_sets = set()
-    
-    # Check if directory exists first
+
     folder = os.path.dirname(CSV_FILE)
-    if not os.path.exists(folder):
+    if folder and not os.path.exists(folder):
         try:
             os.makedirs(folder)
             print(f"Created directory: {folder}")
         except OSError:
-            pass # Drive might not be mounted yet
+            pass
 
     if os.path.isfile(CSV_FILE):
         try:
             with open(CSV_FILE, mode='r', encoding='utf-8') as f:
                 reader = csv.reader(f)
-                next(reader, None) # Skip header
+                next(reader, None)
                 for row in reader:
                     if len(row) > 3:
-                        # Signature: Date_Workout_Exercise_Set
                         signature = f"{row[0]}_{row[1]}_{row[2]}_{row[3]}"
                         existing_sets.add(signature)
         except Exception as e:
             print(f"Warning reading file: {e}")
 
-    # 2. FETCH RECENT WORKOUTS
     cutoff_date = datetime.now() - timedelta(days=2)
     print(f"Checking Hevy for workouts since {cutoff_date.date()}...")
-    
-    url = "https://api.hevyapp.com/v1/workouts"
-    params = {"page": 1, "pageSize": 10}
-    
-    try:
-        response = requests.get(url, headers=headers, params=params)
-        
-        if response.status_code != 200:
-            print(f"Error: {response.status_code} - {response.text}")
-            return
 
-        data = response.json()
+    try:
+        data = request_json(
+            "GET",
+            "https://api.hevyapp.com/v1/workouts",
+            headers=headers,
+            params={"page": 1, "pageSize": 10},
+            timeout_s=20,
+            retries=3,
+        )
+
         workouts = data.get('workouts', [])
-        
+
         if not workouts:
             print("No workouts found.")
             return
 
         new_rows = []
         skipped_count = 0
-        
+
         for workout in workouts:
             w_date_str = workout.get('start_time')
-            if not w_date_str: continue
+            if not w_date_str:
+                continue
 
-            # Convert UTC to local time before extracting the date
             w_dt = datetime.fromisoformat(w_date_str).astimezone().replace(tzinfo=None)
-            
             if w_dt < cutoff_date:
                 continue
-            
+
             w_date_clean = w_dt.strftime("%Y-%m-%d")
             w_title = workout.get('title', 'Unknown Workout')
 
             for exercise in workout.get('exercises', []):
                 ex_name = exercise.get('title', 'Unknown')
-                
+
                 for i, s in enumerate(exercise.get('sets', [])):
                     set_num = str(i + 1)
-
                     signature = f"{w_date_clean}_{w_title}_{ex_name}_{set_num}"
-
                     if signature in existing_sets:
                         skipped_count += 1
                         continue
@@ -155,33 +105,33 @@ def main():
                     ]
                     new_rows.append(row)
 
-        # 3. SAVE WITH SORTING (newest to oldest)
         if new_rows:
-            # Read existing rows
             existing_rows = []
             if os.path.isfile(CSV_FILE):
                 with open(CSV_FILE, mode='r', encoding='utf-8') as f:
                     reader = csv.reader(f)
-                    next(reader, None)  # Skip header
+                    next(reader, None)
                     existing_rows = list(reader)
 
-            # Combine and sort by date descending (newest first)
             all_rows = existing_rows + new_rows
             all_rows.sort(key=lambda x: x[0] if x else '', reverse=True)
 
-            # Rewrite entire file
             with open(CSV_FILE, mode='w', newline='', encoding='utf-8') as f:
                 writer = csv.writer(f)
                 writer.writerow(["Date", "Workout", "Exercise", "Set", "Weight (lbs)", "Reps", "RPE", "Type"])
                 writer.writerows(all_rows)
+
             sqlite_rows = sync_csv_to_table("hevy_stats.csv")
             print(f"SUCCESS: Added {len(new_rows)} new sets. (Skipped {skipped_count} duplicates) [Sorted newest to oldest]")
             print(f"SQLite sync complete: {sqlite_rows} rows in hevy_stats")
         else:
             print(f"No *new* sets found. (Skipped {skipped_count} duplicates)")
 
+    except HttpRequestError as e:
+        print(f"Network/API error: {e}")
     except Exception as e:
         print(f"Error: {e}")
+
 
 if __name__ == "__main__":
     main()
