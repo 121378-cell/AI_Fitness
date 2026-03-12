@@ -5,7 +5,10 @@ import os
 from dotenv import load_dotenv
 
 from src.database import get_db_path
+from src.logging_utils import get_logger
 from src.services.sync_service import sync_all_datasets
+
+logger = get_logger("ai_fitness.migrate")
 
 
 def main() -> None:
@@ -13,17 +16,17 @@ def main() -> None:
     save_path = os.getenv("SAVE_PATH", os.getcwd())
     db_path = get_db_path()
 
-    print(f"Directorio de origen CSV: {save_path}")
-    print(f"Base destino SQLite: {db_path}")
+    logger.info("Directorio de origen CSV: %s", save_path)
+    logger.info("Base destino SQLite: %s", db_path)
 
     results = sync_all_datasets(db_path=db_path)
     migrated_total = 0
     for table_name, result in results.items():
-        print(f"- {table_name}: {result.rows_processed} filas procesadas desde {result.name}")
+        logger.info("%s: %s filas procesadas desde %s", table_name, result.rows_processed, result.name)
         migrated_total += result.rows_processed
 
-    print(f"Migración completada. Filas totales procesadas: {migrated_total}")
-    print("Los archivos CSV se mantienen intactos para validación y rollback.")
+    logger.info("Migración completada. Filas totales procesadas: %s", migrated_total)
+    logger.info("Los archivos CSV se mantienen intactos para validación y rollback.")
 
 
 if __name__ == "__main__":

@@ -116,3 +116,11 @@ Buenas prácticas adicionales:
 - Esto reduce el acoplamiento directo de los scripts contra funciones internas de `src/database.py`.
 - El comportamiento funcional se mantiene: cada script sigue escribiendo CSV y luego sincroniza SQLite (dual-write de transición).
 
+
+
+## 11) Siguiente tarea del plan: logging estructurado en servicios
+
+- Se agregó `src/logging_utils.py` para centralizar logger con formato homogéneo.
+- `src/services/sync_service.py` ahora emite logs de inicio/fin por dataset y sincronización global.
+- `migrate_csv_to_sqlite.py` usa logger estructurado para mejorar trazabilidad operativa y facilitar debug en cron/CI.
+
