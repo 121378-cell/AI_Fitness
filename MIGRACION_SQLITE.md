@@ -132,3 +132,12 @@ Buenas prácticas adicionales:
 - `sqlite_validation_examples.py` ahora consume este servicio, evitando duplicación de lógica de validación y preparando la base para checks automáticos en CI.
 - Esta tarea mantiene el enfoque no destructivo: sólo valida consistencia entre orígenes, no altera ni elimina CSV.
 
+
+
+## 13) Siguiente tarea del plan: quality gate automatizable
+
+- Se agregó `src/services/quality_gate_service.py` para ejecutar una compuerta de calidad reutilizable basada en las validaciones CSV vs SQLite.
+- Se añadió `run_data_quality_gate.py` como entrypoint para automatizar en local/CI (exit code 0/1 según pase o falle).
+- Si no existen ni CSV ni DB en un entorno limpio, el quality gate se marca como ejecución vacía exitosa para no bloquear CI por falta de fixtures.
+- Esto permite integrar controles de paridad como paso previo al cutover definitivo a SQLite.
+
