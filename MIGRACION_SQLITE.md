@@ -141,3 +141,11 @@ Buenas prácticas adicionales:
 - Si no existen ni CSV ni DB en un entorno limpio, el quality gate se marca como ejecución vacía exitosa para no bloquear CI por falta de fixtures.
 - Esto permite integrar controles de paridad como paso previo al cutover definitivo a SQLite.
 
+
+
+## 14) Siguiente tarea del plan: pipeline pre-cutover unificado
+
+- Se agregó `src/services/pipeline_service.py` para ejecutar en un solo flujo: sincronización CSV→SQLite + quality gate.
+- Se añadió `run_migration_quality_pipeline.py` como entrypoint único para pre-cutover (útil en CI/cron técnico).
+- El pipeline devuelve exit code `0/1` y resume filas procesadas + estado de validaciones para facilitar automatización y observabilidad.
+
