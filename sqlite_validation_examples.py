@@ -3,14 +3,18 @@
 
 import os
 import sqlite3
+from typing import Dict
+
 import pandas as pd
 from dotenv import load_dotenv
+
+from src.database import TABLE_CONFIG
 
 load_dotenv()
 SAVE_PATH = os.getenv("SAVE_PATH", os.getcwd())
 DB_PATH = os.path.join(SAVE_PATH, "ai_fitness.db")
 
-TABLES = {
+TABLES: Dict[str, Dict[str, object]] = {
     "garmin_stats": {
         "csv": os.path.join(SAVE_PATH, "garmin_stats.csv"),
         "date_col": "Date",
@@ -38,6 +42,22 @@ def norm_date(series: pd.Series) -> pd.Series:
     return pd.to_datetime(series, errors="coerce", format="mixed").dt.strftime("%Y-%m-%d")
 
 
+def validate_primary_key_duplicates(df: pd.DataFrame, table: str) -> None:
+    pk_cols = TABLE_CONFIG.get(table, {}).get("pk", [])
+    if not pk_cols:
+        return
+    missing_cols = [c for c in pk_cols if c not in df.columns]
+    if missing_cols:
+        print(f"[WARN] PK cols ausentes en SQLite para {table}: {missing_cols}")
+        return
+
+    dup_count = int(df.duplicated(subset=pk_cols).sum())
+    if dup_count == 0:
+        print(f"[OK] Sin duplicados por PK lógica ({', '.join(pk_cols)})")
+    else:
+        print(f"[FAIL] Se detectaron {dup_count} duplicados por PK lógica ({', '.join(pk_cols)})")
+
+
 def validate_table(conn: sqlite3.Connection, table: str, cfg: dict) -> None:
     csv_path = cfg["csv"]
     if not os.path.exists(csv_path):
@@ -63,6 +83,8 @@ def validate_table(conn: sqlite3.Connection, table: str, cfg: dict) -> None:
             print("[OK] Fechas coinciden")
         else:
             print(f"[FAIL] Fechas diferentes. Solo CSV: {len(csv_dates - sql_dates)}, Solo SQL: {len(sql_dates - csv_dates)}")
+
+    validate_primary_key_duplicates(df_sql, table)
 
     for col in cfg["check_cols"]:
         if col not in df_csv.columns or col not in df_sql.columns:

@@ -4,7 +4,7 @@
 import os
 from dotenv import load_dotenv
 
-from src.database import TABLE_CONFIG, get_db_path, load_csv_and_upsert
+from src.database import get_db_path, sync_all_configured_csv
 
 
 def main() -> None:
@@ -15,17 +15,10 @@ def main() -> None:
     print(f"Directorio de origen CSV: {save_path}")
     print(f"Base destino SQLite: {db_path}")
 
+    results = sync_all_configured_csv(db_path=db_path)
     migrated_total = 0
-    for table_name, config in TABLE_CONFIG.items():
-        csv_path = os.path.join(save_path, config["csv"])
-        inserted = load_csv_and_upsert(
-            csv_path=csv_path,
-            table_name=table_name,
-            primary_keys=config["pk"],
-            date_cols=config.get("date_cols"),
-            db_path=db_path,
-        )
-        print(f"- {table_name}: {inserted} filas procesadas desde {config['csv']}")
+    for table_name, inserted in results.items():
+        print(f"- {table_name}: {inserted} filas procesadas")
         migrated_total += inserted
 
     print(f"Migración completada. Filas totales procesadas: {migrated_total}")

@@ -91,3 +91,12 @@ Buenas prácticas adicionales:
 2. Monitorea validación periódica con `sqlite_validation_examples.py`.
 3. Cuando no haya diferencias, cambia consumidores secundarios a SQLite.
 4. Recién al final, decide archivar CSV (no borrar sin backup).
+
+
+## 8) Mejoras de fase 2 (persistencia robusta)
+
+- La capa SQLite ahora crea columnas con afinidad de tipo (`INTEGER`, `REAL`, `TEXT`) según el nombre de columna.
+- Se crean índices recomendados por tabla para acelerar dashboard y validaciones.
+- La migración usa sincronización global (`sync_all_configured_csv`) para evitar drift entre tablas configuradas.
+- Las validaciones incluyen chequeo de duplicados por PK lógica en SQLite.
+

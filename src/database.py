@@ -19,17 +19,29 @@ def get_db_path(db_path: Optional[str] = None) -> str:
 
 
 TABLE_CONFIG: Dict[str, Dict[str, Any]] = {
-    "garmin_stats": {"csv": "garmin_stats.csv", "pk": ["Date"], "date_cols": ["Date"]},
+    "garmin_stats": {
+        "csv": "garmin_stats.csv",
+        "pk": ["Date"],
+        "date_cols": ["Date"],
+        "indexes": [["Date"], ["Steps"], ["RHR"]],
+    },
     "hevy_stats": {
         "csv": "hevy_stats.csv",
         "pk": ["Date", "Workout", "Exercise", "Set"],
         "date_cols": ["Date"],
+        "indexes": [["Date"], ["Workout"], ["Exercise"]],
     },
-    "garmin_activities": {"csv": "garmin_activities.csv", "pk": ["activityId"], "date_cols": ["Date"]},
+    "garmin_activities": {
+        "csv": "garmin_activities.csv",
+        "pk": ["activityId"],
+        "date_cols": ["Date"],
+        "indexes": [["Date"], ["sportType"], ["activityId"]],
+    },
     "garmin_runs": {
         "csv": "garmin_runs.csv",
         "pk": ["Date", "Time", "activityName"],
         "date_cols": ["Date"],
+        "indexes": [["Date"], ["activityType_typeKey"]],
     },
 }
 
@@ -67,6 +79,22 @@ def _coerce_value(value: Any) -> Any:
         except ValueError:
             pass
     return text
+
+
+def _infer_sql_type(column_name: str, date_cols: Optional[List[str]] = None) -> str:
+    date_cols = date_cols or []
+    if column_name in date_cols or column_name.lower() == "date":
+        return "TEXT"
+
+    col = column_name.lower()
+    integer_keys = ["steps", "reps", "set", "hr", "score", "calories", "zone", "id"]
+    real_keys = ["weight", "pace", "speed", "distance", "vo2", "hrv", "sleep", "resp", "spo2", "effect", "load", "power", "cadence"]
+
+    if any(k in col for k in integer_keys):
+        return "INTEGER"
+    if any(k in col for k in real_keys):
+        return "REAL"
+    return "TEXT"
 
 
 def connect_db(db_path: Optional[str] = None, timeout: float = 30.0) -> sqlite3.Connection:
@@ -107,17 +135,29 @@ def ensure_table(
     table_name: str,
     headers: List[str],
     primary_keys: Optional[List[str]] = None,
+    date_cols: Optional[List[str]] = None,
     db_path: Optional[str] = None,
 ) -> None:
     if not headers:
         return
-    column_defs = ", ".join([f"{_quote(col)} TEXT" for col in headers])
+
+    column_defs = ", ".join([f"{_quote(col)} {_infer_sql_type(col, date_cols)}" for col in headers])
     pk_clause = ""
     if primary_keys:
         pk_cols = ", ".join([_quote(col) for col in primary_keys])
         pk_clause = f", PRIMARY KEY ({pk_cols})"
     sql = f"CREATE TABLE IF NOT EXISTS {_quote(table_name)} ({column_defs}{pk_clause})"
     execute_query(sql, db_path=db_path)
+
+
+def ensure_indexes(table_name: str, indexes: List[List[str]], db_path: Optional[str] = None) -> None:
+    if not indexes:
+        return
+    for idx_cols in indexes:
+        idx_name = f"idx_{table_name}_{'_'.join([c.replace(' ', '_') for c in idx_cols])}"
+        cols_sql = ", ".join([_quote(c) for c in idx_cols])
+        sql = f"CREATE INDEX IF NOT EXISTS {_quote(idx_name)} ON {_quote(table_name)} ({cols_sql})"
+        execute_query(sql, db_path=db_path)
 
 
 def upsert_rows(
@@ -130,7 +170,10 @@ def upsert_rows(
 ) -> int:
     if not rows:
         return 0
-    ensure_table(table_name, headers, primary_keys, db_path)
+
+    cfg = TABLE_CONFIG.get(table_name, {})
+    ensure_table(table_name, headers, primary_keys, date_cols=date_cols, db_path=db_path)
+    ensure_indexes(table_name, cfg.get("indexes", []), db_path=db_path)
 
     date_cols = date_cols or []
     placeholders = ", ".join(["?" for _ in headers])
@@ -184,6 +227,13 @@ def sync_csv_to_table(csv_filename: str, db_path: Optional[str] = None) -> int:
         if cfg["csv"] == csv_filename:
             return load_csv_and_upsert(csv_path, table_name, cfg["pk"], cfg.get("date_cols"), db_path=db_path)
     raise ValueError(f"CSV no configurado para migración: {csv_filename}")
+
+
+def sync_all_configured_csv(db_path: Optional[str] = None) -> Dict[str, int]:
+    results: Dict[str, int] = {}
+    for table_name, cfg in TABLE_CONFIG.items():
+        results[table_name] = sync_csv_to_table(cfg["csv"], db_path=db_path)
+    return results
 
 
 def table_to_dataframe(table_name: str, db_path: Optional[str] = None):
