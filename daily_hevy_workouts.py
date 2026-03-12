@@ -2,7 +2,7 @@ import csv
 import os
 from datetime import datetime, timedelta
 
-from src.database import sync_csv_to_table
+from src.services.sync_service import sync_single_dataset
 from src.http_utils import HttpRequestError, request_json
 from src.runtime_checks import enforce_mount_safety, load_runtime_config
 
@@ -121,9 +121,9 @@ def main():
                 writer.writerow(["Date", "Workout", "Exercise", "Set", "Weight (lbs)", "Reps", "RPE", "Type"])
                 writer.writerows(all_rows)
 
-            sqlite_rows = sync_csv_to_table("hevy_stats.csv")
+            sqlite_result = sync_single_dataset("hevy_stats.csv")
             print(f"SUCCESS: Added {len(new_rows)} new sets. (Skipped {skipped_count} duplicates) [Sorted newest to oldest]")
-            print(f"SQLite sync complete: {sqlite_rows} rows in hevy_stats")
+            print(f"SQLite sync complete: {sqlite_result.rows_processed} rows in hevy_stats")
         else:
             print(f"No *new* sets found. (Skipped {skipped_count} duplicates)")
 

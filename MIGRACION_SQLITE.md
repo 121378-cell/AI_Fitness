@@ -100,3 +100,11 @@ Buenas prácticas adicionales:
 - La migración usa sincronización global (`sync_all_configured_csv`) para evitar drift entre tablas configuradas.
 - Las validaciones incluyen chequeo de duplicados por PK lógica en SQLite.
 
+
+
+## 9) Siguiente tarea del plan: capa de servicios de sincronización
+
+- Se agregó `src/services/sync_service.py` para desacoplar la orquestación de sincronización del script de migración y de ETLs.
+- `migrate_csv_to_sqlite.py` ahora consume `sync_all_datasets()` y reporta resultados tipados por dataset.
+- ETLs pueden migrar progresivamente desde llamadas directas a DB (`sync_csv_to_table`) hacia servicios (`sync_single_dataset`) sin romper comportamiento actual.
+
