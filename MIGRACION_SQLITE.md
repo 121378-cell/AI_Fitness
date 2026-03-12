@@ -165,3 +165,11 @@ Buenas prácticas adicionales:
 - Se añadió `Makefile` con comandos operativos estándar (`migrate`, `validate`, `quality`, `pipeline`, `ci-check`) para facilitar ejecución local y runbooks.
 - Con esto queda cubierta la automatización base del plan: migración, validación, quality gate y pipeline unificado en local/CI.
 
+
+
+## 17) Siguiente tarea del plan: artefactos JSON para CI/observabilidad
+
+- `run_data_quality_gate.py` y `run_migration_quality_pipeline.py` ahora aceptan `--output-json` para exportar resultados estructurados.
+- El workflow CI sube `pipeline_summary.json` como artifact (`sqlite-pipeline-summary`) para auditoría y trazabilidad.
+- El `Makefile` añade `quality-json` y `pipeline-json` para generar estos artefactos localmente.
+
