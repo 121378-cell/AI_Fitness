@@ -124,3 +124,11 @@ Buenas prácticas adicionales:
 - `src/services/sync_service.py` ahora emite logs de inicio/fin por dataset y sincronización global.
 - `migrate_csv_to_sqlite.py` usa logger estructurado para mejorar trazabilidad operativa y facilitar debug en cron/CI.
 
+
+
+## 12) Siguiente tarea del plan: servicio de validación reutilizable
+
+- Se agregó `src/services/validation_service.py` para encapsular validaciones CSV vs SQLite (filas, fechas, duplicados por PK lógica y valores faltantes por columna).
+- `sqlite_validation_examples.py` ahora consume este servicio, evitando duplicación de lógica de validación y preparando la base para checks automáticos en CI.
+- Esta tarea mantiene el enfoque no destructivo: sólo valida consistencia entre orígenes, no altera ni elimina CSV.
+
