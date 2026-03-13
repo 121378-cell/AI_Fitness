@@ -10,6 +10,7 @@ import os
 import sys
 import platform
 from dotenv import load_dotenv
+from src.services.sync_service import sync_single_dataset
 
 # 1. Load configuration immediately
 load_dotenv()
@@ -403,6 +404,9 @@ def main():
             for d in sorted_dates:
                 writer.writerow(existing_data[d])
         print(f"Updated {len(existing_data)} rows.")
+
+    sqlite_rows = sync_single_dataset("garmin_stats.csv").rows_processed
+    print(f"SQLite sync complete: {sqlite_rows} rows in garmin_stats")
 
     print("--- HISTORY PULL COMPLETE ---")
 
