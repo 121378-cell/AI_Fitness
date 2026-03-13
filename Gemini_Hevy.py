@@ -15,10 +15,24 @@ from dotenv import load_dotenv
 
 # --- CONFIGURATION ---
 DRY_RUN = False  # Set to False to actually post workouts to Hevy
-MODEL_NAME = "gemini-flash-latest" # Using latest Gemini Flash model
+DEFAULT_PROVIDER_ORDER = "ollama,groq,gemini"
+DEFAULT_GEMINI_MODEL = "gemini-flash-latest"
+DEFAULT_GROQ_MODEL = "llama-3.1-70b-versatile"
+DEFAULT_OLLAMA_MODEL = "llama3.1:8b-instruct"
+DEFAULT_OLLAMA_BASE_URL = "http://localhost:11434"
 
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", DEFAULT_GEMINI_MODEL)
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+GROQ_MODEL = os.getenv("GROQ_MODEL", DEFAULT_GROQ_MODEL)
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", DEFAULT_OLLAMA_BASE_URL).rstrip("/")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", DEFAULT_OLLAMA_MODEL)
+AI_PROVIDER_ORDER = [
+    provider.strip().lower()
+    for provider in os.getenv("AI_PROVIDER_ORDER", DEFAULT_PROVIDER_ORDER).split(",")
+    if provider.strip()
+]
 HEVY_API_KEY = os.getenv("HEVY_API_KEY")
 TARGET_FOLDER_ID = os.getenv("GOOGLE_DRIVE_FOLDER_ID")
 SCOPES = [
@@ -355,9 +369,100 @@ def get_file_content(service, filename):
     print(f"   -> Downloaded '{filename}' from Google Drive successfully.")
     return fh
 
+def generate_with_ollama(prompt_text):
+    """Generate a JSON workout plan using a local Ollama model."""
+    url = f"{OLLAMA_BASE_URL}/api/generate"
+    payload = {
+        "model": OLLAMA_MODEL,
+        "prompt": prompt_text,
+        "stream": False,
+        "format": "json"
+    }
+    response = requests.post(url, json=payload, timeout=180)
+    response.raise_for_status()
+
+    data = response.json()
+    text = (data.get("response") or "").strip()
+    if not text:
+        raise ValueError("Ollama response was empty")
+    return json.loads(text)
+
+def generate_with_groq(prompt_text):
+    """Generate a JSON workout plan using Groq Chat Completions API."""
+    if not GROQ_API_KEY:
+        raise ValueError("GROQ_API_KEY not configured")
+
+    url = "https://api.groq.com/openai/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {GROQ_API_KEY}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "model": GROQ_MODEL,
+        "temperature": 0.3,
+        "response_format": {"type": "json_object"},
+        "messages": [
+            {
+                "role": "system",
+                "content": "Return only valid JSON that matches the requested routine schema."
+            },
+            {"role": "user", "content": prompt_text}
+        ]
+    }
+
+    response = requests.post(url, headers=headers, json=payload, timeout=180)
+    response.raise_for_status()
+    data = response.json()
+
+    text = data["choices"][0]["message"]["content"].strip()
+    if not text:
+        raise ValueError("Groq response was empty")
+    return json.loads(text)
+
+def generate_with_gemini(prompt_text):
+    """Generate a JSON workout plan using Gemini."""
+    if not GEMINI_API_KEY:
+        raise ValueError("GEMINI_API_KEY not configured")
+
+    client = genai.Client(api_key=GEMINI_API_KEY)
+    response = client.models.generate_content(
+        model=GEMINI_MODEL,
+        contents=prompt_text,
+        config=genai.types.GenerateContentConfig(
+            response_mime_type='application/json'
+        )
+    )
+    return json.loads(response.text)
+
+def generate_plan_with_fallback(prompt_text):
+    """Try LLM providers in configured order until one returns valid JSON."""
+    providers = {
+        "ollama": generate_with_ollama,
+        "groq": generate_with_groq,
+        "gemini": generate_with_gemini
+    }
+
+    errors = []
+    for provider_name in AI_PROVIDER_ORDER:
+        handler = providers.get(provider_name)
+        if not handler:
+            print(f"   [!] Unknown provider '{provider_name}' in AI_PROVIDER_ORDER. Skipping.")
+            continue
+
+        try:
+            print(f"   Trying provider: {provider_name}...")
+            result = handler(prompt_text)
+            print(f"   -> Success with provider: {provider_name}")
+            return result
+        except Exception as exc:
+            error_msg = f"{provider_name} failed: {exc}"
+            errors.append(error_msg)
+            print(f"   -> {error_msg}")
+
+    raise RuntimeError("All AI providers failed. " + " | ".join(errors))
+
 def generate_monthly_plan():
     service = get_drive_service()
-    client = genai.Client(api_key=GEMINI_API_KEY)
 
     print("\n--- STEP 1: GATHERING DATA ---")
     hevy_stats = get_file_content(service, "hevy_stats.csv")
@@ -419,19 +524,10 @@ def generate_monthly_plan():
         else:
             print("   [!] Skipping aggregations: Exercise database not available")
 
-    print("\n--- STEP 2: CONSULTING GEMINI COACH ---")
+    print("\n--- STEP 2: CONSULTING AI COACH (WITH FALLBACK) ---")
     # Load the prompt from file
     monthly_prompt = load_monthly_prompt()
-
-    # Using 1.5 Flash to avoid Rate Limits
-    response = client.models.generate_content(
-        model=MODEL_NAME,
-        contents=monthly_prompt + context_str,
-        config=genai.types.GenerateContentConfig(
-            response_mime_type='application/json'
-        )
-    )
-    return json.loads(response.text)
+    return generate_plan_with_fallback(monthly_prompt + context_str)
 
 def get_or_create_folder(folder_name="AI Fitness"):
     """Get the folder ID for the given folder name, or create it if it doesn't exist."""
@@ -529,21 +625,18 @@ def post_to_hevy(routines_json):
 
 if __name__ == "__main__":
     try:
-        if not GEMINI_API_KEY:
-            print("ERROR: GEMINI_API_KEY not found in .env file")
+        plan = generate_monthly_plan()
+
+        # Validate variable loading in generated plan
+        print("\n--- VALIDATING PLAN ---")
+        loading_warnings = validate_variable_loading(plan)
+        if loading_warnings:
+            print("   [!] Variable Loading Warnings (straight sets detected):")
+            for w in loading_warnings:
+                print(f"       - {w['routine']}: {w['exercise_id']} - {w['issue']}")
         else:
-            plan = generate_monthly_plan()
+            print("   Variable loading check passed.")
 
-            # Validate variable loading in generated plan
-            print("\n--- VALIDATING PLAN ---")
-            loading_warnings = validate_variable_loading(plan)
-            if loading_warnings:
-                print("   [!] Variable Loading Warnings (straight sets detected):")
-                for w in loading_warnings:
-                    print(f"       - {w['routine']}: {w['exercise_id']} - {w['issue']}")
-            else:
-                print("   Variable loading check passed.")
-
-            post_to_hevy(plan)
+        post_to_hevy(plan)
     except Exception as e:
         print(f"\nCRITICAL ERROR: {e}")
