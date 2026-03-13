@@ -9,6 +9,7 @@ import os
 import sys
 import platform
 from dotenv import load_dotenv
+from src.services.sync_service import sync_single_dataset
 
 # 1. Load configuration immediately
 load_dotenv()
@@ -226,6 +227,8 @@ def main():
             writer.writerow(["Date", "Workout", "Exercise", "Set", "Weight (lbs)", "Reps", "RPE", "Type"])
             writer.writerows(all_new_rows)
         print(f"   Written {len(all_new_rows)} total records (sorted newest to oldest).")
+        sqlite_rows = sync_single_dataset("hevy_stats.csv").rows_processed
+        print(f"SQLite sync complete: {sqlite_rows} rows in hevy_stats")
 
     print(f"--- COMPLETE. Added {total_new} new records. ---")
 
