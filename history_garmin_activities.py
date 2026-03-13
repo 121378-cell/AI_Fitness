@@ -21,6 +21,7 @@ import sys
 import platform
 import time
 from dotenv import load_dotenv
+from src.services.sync_service import sync_single_dataset
 
 # 1. Load configuration
 load_dotenv()
@@ -306,7 +307,9 @@ def main():
             writer = csv.writer(f)
             writer.writerow(HEADERS)
             writer.writerows(all_rows)
+        sqlite_rows = sync_single_dataset("garmin_activities.csv").rows_processed
         print(f"   Written {len(all_rows)} total records (sorted newest to oldest).")
+        print(f"SQLite sync complete: {sqlite_rows} rows in garmin_activities")
 
     print(f"--- COMPLETE. Added {total_new} new records. ---")
 
