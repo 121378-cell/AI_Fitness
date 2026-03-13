@@ -40,6 +40,50 @@ TABLE_CONFIG: Dict[str, Dict[str, Any]] = {
 }
 
 
+
+SCHEMA_VERSION = 1
+
+
+def _table_exists(conn: sqlite3.Connection, table_name: str) -> bool:
+    row = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name=? LIMIT 1",
+        (table_name,),
+    ).fetchone()
+    return row is not None
+
+
+def _column_exists(conn: sqlite3.Connection, table_name: str, column_name: str) -> bool:
+    if not _table_exists(conn, table_name):
+        return False
+    rows = conn.execute(f"PRAGMA table_info({_quote(table_name)})").fetchall()
+    return any(str(r[1]) == column_name for r in rows)
+
+
+def _migration_add_ingested_at_columns(conn: sqlite3.Connection) -> None:
+    """Migration v1: add ingested_at column to Garmin tables if missing."""
+    for table_name in TABLE_CONFIG.keys():
+        if _table_exists(conn, table_name) and not _column_exists(conn, table_name, "ingested_at"):
+            conn.execute(f"ALTER TABLE {_quote(table_name)} ADD COLUMN {_quote('ingested_at')} TEXT")
+
+
+def apply_schema_migrations(db_path: Optional[str] = None) -> int:
+    """Apply incremental SQLite schema migrations using PRAGMA user_version."""
+    with sqlite3.connect(get_db_path(db_path), timeout=30.0) as conn:
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA foreign_keys = ON")
+        conn.execute("PRAGMA journal_mode = WAL")
+        conn.execute("PRAGMA busy_timeout = 5000")
+
+        current_version = int(conn.execute("PRAGMA user_version").fetchone()[0])
+        if current_version >= SCHEMA_VERSION:
+            return current_version
+
+        if current_version < 1:
+            _migration_add_ingested_at_columns(conn)
+            conn.execute("PRAGMA user_version = 1")
+
+        return int(conn.execute("PRAGMA user_version").fetchone()[0])
+
 def _quote(identifier: str) -> str:
     return '"' + identifier.replace('"', '""') + '"'
 
@@ -92,6 +136,7 @@ def _infer_sql_type(column_name: str, date_cols: Optional[List[str]] = None) -> 
 
 
 def connect_db(db_path: Optional[str] = None, timeout: float = 30.0) -> sqlite3.Connection:
+    apply_schema_migrations(db_path)
     conn = sqlite3.connect(get_db_path(db_path), timeout=timeout)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
@@ -106,6 +151,7 @@ def close_db(conn: sqlite3.Connection) -> None:
 
 @contextmanager
 def transaction(db_path: Optional[str] = None) -> Iterable[sqlite3.Connection]:
+    apply_schema_migrations(db_path)
     with sqlite3.connect(get_db_path(db_path), timeout=30.0) as conn:
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys = ON")

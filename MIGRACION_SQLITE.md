@@ -33,3 +33,12 @@ make quality
 make pipeline
 make ci-check
 ```
+
+
+## 6) Versionado de esquema
+
+La capa `src/database.py` aplica migraciones incrementales automáticas usando `PRAGMA user_version`
+al abrir conexión/transacción.
+
+- Versión actual: `1`
+- Migración v1: agrega columna `ingested_at` a tablas Garmin existentes si no existe.
