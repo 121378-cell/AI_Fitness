@@ -253,3 +253,12 @@ Una mejora se considera terminada cuando:
 - 3–5 tests nuevos de integración básica.
 
 Resultado esperado: reducir ambigüedad operativa y bloquear errores de configuración antes de runtime.
+
+
+## 11) Estado de ejecución (actual)
+
+- [x] Fase 0 / Task 1: `.env.example` multi-provider creado/alineado.
+- [x] Fase 0 / Task 2: README actualizado con fallback IA y comandos operativos de migración/quality.
+- [x] Fase 0 / Task 3: validación central de configuración IA implementada y conectada en `Gemini_Hevy.py`.
+- [x] Verificación de sistema tras cambios: `make ci-check` en verde en este entorno.
+- [ ] Fase 1 (siguiente): versionado de esquema SQLite + migraciones incrementales.

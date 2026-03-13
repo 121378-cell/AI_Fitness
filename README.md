@@ -28,7 +28,7 @@ This project creates a comprehensive fitness tracking system that automatically 
   - Swimming: Stroke count, laps, pool length
 
 ### AI Integration
-- **Gemini AI Coach** - Generates personalized 4-week PPL routines
+- **AI Coach with Fallback** - Generates personalized 4-week PPL routines using `ollama -> groq -> gemini` (configurable).
 - **Auto-Upload** - Pushes AI-generated routines directly to Hevy app
 - **Smart Context** - Uses your training history and recovery data
 
@@ -118,8 +118,22 @@ GARMIN_PASSWORD=your_password
 # Hevy App (get from Hevy Settings > API)
 HEVY_API_KEY=your_hevy_api_key
 
-# Google Services
+# AI Providers (ordered fallback)
+AI_PROVIDER_ORDER=ollama,groq,gemini
+
+# Ollama (primary)
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=llama3.1:8b-instruct
+
+# Groq (fallback)
+GROQ_API_KEY=your_groq_api_key
+GROQ_MODEL=llama-3.1-70b-versatile
+
+# Gemini (fallback)
 GEMINI_API_KEY=your_gemini_api_key
+GEMINI_MODEL=gemini-flash-latest
+
+# Google Drive (context files)
 GOOGLE_DRIVE_FOLDER_ID=your_folder_id
 
 # System Settings
@@ -133,6 +147,21 @@ python3 setup.py
 ```
 
 Your existing settings are preserved - just press Enter to keep current values.
+
+---
+
+
+## Migration & Quality Operations
+
+Use the included `Makefile` for pre-cutover checks:
+
+```bash
+make migrate          # CSV -> SQLite sync
+make validate         # Manual validation report
+make quality          # Quality gate (exit 0/1)
+make pipeline         # Sync + quality pipeline
+make ci-check         # Tests + compile + pipeline
+```
 
 ---
 

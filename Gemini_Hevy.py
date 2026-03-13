@@ -13,26 +13,20 @@ from googleapiclient.http import MediaIoBaseDownload
 from google import genai
 from dotenv import load_dotenv
 
+from src.config.settings import get_ai_settings, validate_ai_settings
+
 # --- CONFIGURATION ---
 DRY_RUN = False  # Set to False to actually post workouts to Hevy
-DEFAULT_PROVIDER_ORDER = "ollama,groq,gemini"
-DEFAULT_GEMINI_MODEL = "gemini-flash-latest"
-DEFAULT_GROQ_MODEL = "llama-3.1-70b-versatile"
-DEFAULT_OLLAMA_MODEL = "llama3.1:8b-instruct"
-DEFAULT_OLLAMA_BASE_URL = "http://localhost:11434"
 
 load_dotenv()
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", DEFAULT_GEMINI_MODEL)
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-GROQ_MODEL = os.getenv("GROQ_MODEL", DEFAULT_GROQ_MODEL)
-OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", DEFAULT_OLLAMA_BASE_URL).rstrip("/")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", DEFAULT_OLLAMA_MODEL)
-AI_PROVIDER_ORDER = [
-    provider.strip().lower()
-    for provider in os.getenv("AI_PROVIDER_ORDER", DEFAULT_PROVIDER_ORDER).split(",")
-    if provider.strip()
-]
+ai_settings = get_ai_settings()
+GEMINI_API_KEY = ai_settings.gemini_api_key
+GEMINI_MODEL = ai_settings.gemini_model
+GROQ_API_KEY = ai_settings.groq_api_key
+GROQ_MODEL = ai_settings.groq_model
+OLLAMA_BASE_URL = ai_settings.ollama_base_url
+OLLAMA_MODEL = ai_settings.ollama_model
+AI_PROVIDER_ORDER = ai_settings.provider_order
 HEVY_API_KEY = os.getenv("HEVY_API_KEY")
 TARGET_FOLDER_ID = os.getenv("GOOGLE_DRIVE_FOLDER_ID")
 SCOPES = [
@@ -625,6 +619,10 @@ def post_to_hevy(routines_json):
 
 if __name__ == "__main__":
     try:
+        is_valid, validation_errors = validate_ai_settings(ai_settings)
+        if not is_valid:
+            raise ValueError("AI configuration error(s): " + " | ".join(validation_errors))
+
         plan = generate_monthly_plan()
 
         # Validate variable loading in generated plan
