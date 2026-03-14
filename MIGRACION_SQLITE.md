@@ -42,3 +42,14 @@ al abrir conexión/transacción.
 
 - Versión actual: `1`
 - Migración v1: agrega columna `ingested_at` a tablas Garmin existentes si no existe.
+
+
+## 7) Validaciones pre-upsert
+
+Antes de insertar, `src/database.py` valida:
+- columnas PK requeridas,
+- columnas de fecha requeridas,
+- consistencia longitud fila/header,
+- compatibilidad con columnas existentes cuando la tabla ya existe.
+
+Si aparecen columnas nuevas no migradas, el upsert falla explícitamente para evitar drift silencioso.

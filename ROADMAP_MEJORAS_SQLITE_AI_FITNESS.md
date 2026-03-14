@@ -15,8 +15,8 @@
 - [x] Eliminadas integraciones externas fuera de alcance del proyecto.
 - [x] Proyecto y docs alineados al alcance Garmin-only.
 - [x] Validación del sistema en verde (`make ci-check`).
-- [~] Fase 1 iniciada: versionado de esquema SQLite (`PRAGMA user_version`) y migración incremental v1 implementados.
-- [ ] Siguiente paso: completar validaciones de esquema pre-upsert (Fase 1).
+- [x] Fase 1 completada: versionado de esquema SQLite (`PRAGMA user_version`) + migración incremental v1 + validaciones de esquema pre-upsert.
+- [ ] Siguiente paso: Fase 2 (testing de integración y cobertura).
 
 ## Criterio de calidad por fase
 

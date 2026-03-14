@@ -3,7 +3,7 @@ import sqlite3
 import tempfile
 import unittest
 
-from src.database import SCHEMA_VERSION, apply_schema_migrations
+from src.database import SCHEMA_VERSION, apply_schema_migrations, upsert_rows
 
 
 class DatabaseMigrationsTests(unittest.TestCase):
@@ -30,6 +30,35 @@ class DatabaseMigrationsTests(unittest.TestCase):
                 user_version = conn.execute("PRAGMA user_version").fetchone()[0]
             self.assertIn("ingested_at", cols)
             self.assertEqual(user_version, SCHEMA_VERSION)
+
+
+    def test_upsert_schema_validation_fails_when_pk_missing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            db_path = os.path.join(tmp, "ai_fitness.db")
+            with self.assertRaises(ValueError):
+                upsert_rows(
+                    table_name="garmin_stats",
+                    headers=["Steps"],
+                    rows=[[1000]],
+                    primary_keys=["Date"],
+                    date_cols=["Date"],
+                    db_path=db_path,
+                )
+
+    def test_upsert_schema_validation_fails_when_unexpected_column_exists(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            db_path = os.path.join(tmp, "ai_fitness.db")
+            with sqlite3.connect(db_path) as conn:
+                conn.execute('CREATE TABLE garmin_stats ("Date" TEXT PRIMARY KEY, "Steps" INTEGER)')
+            with self.assertRaises(ValueError):
+                upsert_rows(
+                    table_name="garmin_stats",
+                    headers=["Date", "Steps", "NewCol"],
+                    rows=[["2026-01-01", 1000, "x"]],
+                    primary_keys=["Date"],
+                    date_cols=["Date"],
+                    db_path=db_path,
+                )
 
 
 if __name__ == "__main__":

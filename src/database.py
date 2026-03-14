@@ -171,6 +171,51 @@ def fetch_all(query: str, params: Iterable[Any] = (), db_path: Optional[str] = N
         return cursor.fetchall()
 
 
+
+
+def _get_table_columns(conn: sqlite3.Connection, table_name: str) -> List[str]:
+    if not _table_exists(conn, table_name):
+        return []
+    rows = conn.execute(f"PRAGMA table_info({_quote(table_name)})").fetchall()
+    return [str(r[1]) for r in rows]
+
+
+def validate_upsert_schema(
+    table_name: str,
+    headers: List[str],
+    rows: List[List[Any]],
+    primary_keys: List[str],
+    date_cols: Optional[List[str]] = None,
+    db_path: Optional[str] = None,
+) -> None:
+    """Validate CSV/header shape against logical keys and existing SQLite table schema."""
+    if not headers:
+        raise ValueError(f"{table_name}: empty headers are not allowed")
+
+    missing_pk = [pk for pk in primary_keys if pk not in headers]
+    if missing_pk:
+        raise ValueError(f"{table_name}: missing PK columns in headers: {missing_pk}")
+
+    date_cols = date_cols or []
+    missing_date = [dc for dc in date_cols if dc not in headers]
+    if missing_date:
+        raise ValueError(f"{table_name}: missing date columns in headers: {missing_date}")
+
+    bad_rows = [idx for idx, row in enumerate(rows) if len(row) != len(headers)]
+    if bad_rows:
+        raise ValueError(f"{table_name}: row/header length mismatch at rows {bad_rows[:5]}")
+
+    with transaction(db_path) as conn:
+        existing_cols = _get_table_columns(conn, table_name)
+
+    if existing_cols:
+        unexpected_cols = [h for h in headers if h not in existing_cols]
+        if unexpected_cols:
+            raise ValueError(
+                f"{table_name}: incoming columns not present in SQLite table: {unexpected_cols}. "
+                "Apply an explicit schema migration before upsert."
+            )
+
 def ensure_table(
     table_name: str,
     headers: List[str],
@@ -208,6 +253,15 @@ def upsert_rows(
     date_cols: Optional[List[str]] = None,
     db_path: Optional[str] = None,
 ) -> int:
+    validate_upsert_schema(
+        table_name=table_name,
+        headers=headers,
+        rows=rows,
+        primary_keys=primary_keys,
+        date_cols=date_cols,
+        db_path=db_path,
+    )
+
     if not rows:
         return 0
 
