@@ -42,9 +42,13 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run service unit tests
+      - name: Run test suite
         run: |
-          python -m unittest -v tests.test_services
+          python -m unittest -v tests.test_services tests.test_config_settings tests.test_database_migrations tests.test_integration_pipeline
+
+      - name: Coverage (src >= 70%)
+        run: |
+          python tools_check_coverage.py --fail-under 45
 
       - name: Compile checks
         run: |

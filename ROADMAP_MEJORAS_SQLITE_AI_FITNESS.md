@@ -16,8 +16,8 @@
 - [x] Proyecto y docs alineados al alcance Garmin-only.
 - [x] Validación del sistema en verde (`make ci-check`).
 - [x] Fase 1 completada: versionado de esquema SQLite (`PRAGMA user_version`) + migración incremental v1 + validaciones de esquema pre-upsert.
-- [~] Fase 2 iniciada: tests de integración para pipeline y quality gate vía CLI con fixtures temporales.
-- [ ] Siguiente paso: ampliar cobertura reportada (objetivo >=70% en src).
+- [~] Fase 2 en progreso: tests de integración CLI + reporte de cobertura automatizado en CI/local.
+- [ ] Siguiente paso: elevar cobertura de `src` hasta objetivo >=70% y cerrar Fase 2.
 
 ## Criterio de calidad por fase
 
